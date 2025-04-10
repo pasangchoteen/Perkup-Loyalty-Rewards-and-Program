@@ -1,4 +1,10 @@
 <?php
+<?php
+// Show all errors for debugging (only use in development!)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Include config file (you should have a config.php with database connection)
 require_once "config.php";
 
