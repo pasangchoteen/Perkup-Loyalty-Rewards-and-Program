@@ -93,25 +93,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Validate user type
-    if (empty($user_type)) {
-        $user_type_err = "Please select your account type.";
-    }
 
     // Check input errors before inserting in database
-    if (empty($username_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err) && empty($user_type_err)) {
+    if (empty($username_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err)) {
         // Prepare an insert statement
-        $sql = "INSERT INTO users (username, email, password, user_type) VALUES (?, ?, ?, ?)";
+        $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
 
         if ($stmt = mysqli_prepare($link, $sql)) {
             // Bind variables to the prepared statement as parameters
-            mysqli_stmt_bind_param($stmt, "ssss", $param_username, $param_email, $param_password, $param_user_type);
+            mysqli_stmt_bind_param($stmt, "ssss", $param_username, $param_email, $param_password);
 
             // Set parameters
             $param_username = $username;
             $param_email = $email;
             $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
-            $param_user_type = $user_type;
 
             // Attempt to execute the prepared statement
             if (mysqli_stmt_execute($stmt)) {
@@ -185,8 +180,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             if (!empty($username_err)) { echo "<li>" . htmlspecialchars($username_err) . "</li>"; }
             if (!empty($email_err)) { echo "<li>" . htmlspecialchars($email_err) . "</li>"; }
             if (!empty($password_err)) { echo "<li>" . htmlspecialchars($password_err) . "</li>"; }
-            if (!empty($confirm_password_err)) { echo "<li>" . htmlspecialchars($confirm_password_err) . "</li>"; }
-            if (!empty($user_type_err)) { echo "<li>" . htmlspecialchars($user_type_err) . "</li>"; }
+            if (!empty($confirm_password_err)) { echo "<li>" . htmlspecialchars($confirm_password_err) . "</li>"; }}
             ?>
           </ul>
         </div>
@@ -208,15 +202,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="mb-3">
           <label for="confirm-password" class="form-label">Confirm Password</label>
           <input type="password" class="form-control" id="confirm-password" name="confirm_password" placeholder="Confirm your password" required>
-        </div>
-        
-        <!-- User Type Selection -->
-        <div class="mb-3">
-          <label for="user_type" class="form-label">Account Type</label>
-          <select id="user_type" name="user_type" class="form-control" required>
-            <option value="user" <?php echo ($user_type == 'user' ? 'selected' : ''); ?>>Customer</option>
-            <option value="business" <?php echo ($user_type == 'business' ? 'selected' : ''); ?>>Business</option>
-          </select>
         </div>
 
         <button type="submit" class="btn btn-primary w-100">Sign Up</button>
