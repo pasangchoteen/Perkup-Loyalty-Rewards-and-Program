@@ -1,47 +1,35 @@
 <?php
-<?php
 // Show all errors for debugging (only use in development!)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Include config file (you should have a config.php with database connection)
+// Include database connection
 require_once "config.php";
 
-// Define variables and initialize with empty values
-$username = $email = $password = $confirm_password = $user_type = "";
+// Initialize variables
+$username = $email = $password = $confirm_password = "";
 $username_err = $email_err = $password_err = $confirm_password_err = $user_type_err = "";
 
-// Set user type based on URL parameter (GET method)
-if (isset($_GET['type'])) {
-    $user_type = $_GET['type']; // 'business' or 'user'
-}
-
-// Processing form data when form is submitted
+// Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Validate username
     if (empty(trim($_POST["username"]))) {
         $username_err = "Please enter a username.";
-    } elseif (!preg_match('/^[a-zA0-9_]+$/', trim($_POST["username"]))) {
+    } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', trim($_POST["username"]))) {
         $username_err = "Username can only contain letters, numbers, and underscores.";
     } else {
-        // Prepare a select statement to check if username already exists
         $sql = "SELECT id FROM users WHERE username = ?";
-
         if ($stmt = mysqli_prepare($link, $sql)) {
             mysqli_stmt_bind_param($stmt, "s", $param_username);
             $param_username = trim($_POST["username"]);
-
-            if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_store_result($stmt);
-                if (mysqli_stmt_num_rows($stmt) == 1) {
-                    $username_err = "This username is already taken.";
-                } else {
-                    $username = trim($_POST["username"]);
-                }
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_store_result($stmt);
+            if (mysqli_stmt_num_rows($stmt) == 1) {
+                $username_err = "This username is already taken.";
             } else {
-                echo "Oops! Something went wrong. Please try again later.";
+                $username = $param_username;
             }
             mysqli_stmt_close($stmt);
         }
@@ -49,26 +37,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Validate email
     if (empty(trim($_POST["email"]))) {
-        $email_err = "Please enter an email address.";
+        $email_err = "Please enter an email.";
     } elseif (!filter_var(trim($_POST["email"]), FILTER_VALIDATE_EMAIL)) {
-        $email_err = "Please enter a valid email address.";
+        $email_err = "Invalid email format.";
     } else {
-        // Check if email is already taken
         $sql = "SELECT id FROM users WHERE email = ?";
-
         if ($stmt = mysqli_prepare($link, $sql)) {
             mysqli_stmt_bind_param($stmt, "s", $param_email);
             $param_email = trim($_POST["email"]);
-
-            if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_store_result($stmt);
-                if (mysqli_stmt_num_rows($stmt) == 1) {
-                    $email_err = "This email is already registered.";
-                } else {
-                    $email = trim($_POST["email"]);
-                }
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_store_result($stmt);
+            if (mysqli_stmt_num_rows($stmt) == 1) {
+                $email_err = "This email is already registered.";
             } else {
-                echo "Oops! Something went wrong. Please try again later.";
+                $email = $param_email;
             }
             mysqli_stmt_close($stmt);
         }
@@ -78,66 +60,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty(trim($_POST["password"]))) {
         $password_err = "Please enter a password.";
     } elseif (strlen(trim($_POST["password"])) < 6) {
-        $password_err = "Password must have at least 6 characters.";
+        $password_err = "Password must be at least 6 characters.";
     } else {
         $password = trim($_POST["password"]);
     }
 
-    // Validate confirm password
+    // Confirm password
     if (empty(trim($_POST["confirm_password"]))) {
         $confirm_password_err = "Please confirm your password.";
     } else {
         $confirm_password = trim($_POST["confirm_password"]);
-        if (empty($password_err) && ($password != $confirm_password)) {
-            $confirm_password_err = "Password did not match.";
+        if ($password !== $confirm_password) {
+            $confirm_password_err = "Passwords do not match.";
         }
     }
 
-
-    // Check input errors before inserting in database
+    // If no errors, insert into DB
     if (empty($username_err) && empty($email_err) && empty($password_err) && empty($confirm_password_err)) {
-        // Prepare an insert statement
         $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
 
         if ($stmt = mysqli_prepare($link, $sql)) {
-            // Bind variables to the prepared statement as parameters
-            mysqli_stmt_bind_param($stmt, "ssss", $param_username, $param_email, $param_password);
+            mysqli_stmt_bind_param($stmt, "sss", $param_username, $param_email, $param_password);
 
-            // Set parameters
             $param_username = $username;
             $param_email = $email;
-            $param_password = password_hash($password, PASSWORD_DEFAULT); // Creates a password hash
+            $param_password = password_hash($password, PASSWORD_DEFAULT); // Encrypt password
 
-            // Attempt to execute the prepared statement
             if (mysqli_stmt_execute($stmt)) {
-                // Send confirmation email
-                $to = $email;
-                $subject = "Welcome to PerkUp!";
-                $message = "Thank you for signing up for PerkUp! We are excited to have you on board. Please click the link below to verify your email address and activate your account.\n\n";
-                $message .= "Verification link: http://yourwebsite.com/verify.php?email=" . urlencode($email);
-                $headers = "From: no-reply@perkup.com\r\n";
-                $headers .= "Content-Type: text/plain; charset=UTF-8";
-
-                // Send the email
-                if (mail($to, $subject, $message, $headers)) {
-                    // Redirect to login page
-                    header("location: login.php");
-                    exit();
-                } else {
-                    echo "Error sending confirmation email.";
-                }
+                header("location: login.php"); // Redirect to login page after successful signup
+                exit();
             } else {
-                echo "Oops! Something went wrong. Please try again later.";
+                echo "Something went wrong. Please try again later.";
             }
-
-            // Close statement
             mysqli_stmt_close($stmt);
         }
     }
-
-    // Close connection
-    mysqli_close($link);
 }
+
+// Close the connection after all database operations are done
+mysqli_close($link);
 ?>
 
 <!-- HTML Form for Signup -->
@@ -173,14 +134,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="card shadow-lg p-4" style="max-width: 500px; width: 100%;">
       <h2 class="text-center mb-4">Create an Account</h2>
       
-      <?php if (!empty($username_err) || !empty($email_err) || !empty($password_err) || !empty($confirm_password_err) || !empty($user_type_err)): ?>
+      <?php if (!empty($username_err) || !empty($email_err) || !empty($password_err) || !empty($confirm_password_err)): ?>
         <div class="alert alert-danger">
           <ul>
             <?php
             if (!empty($username_err)) { echo "<li>" . htmlspecialchars($username_err) . "</li>"; }
             if (!empty($email_err)) { echo "<li>" . htmlspecialchars($email_err) . "</li>"; }
             if (!empty($password_err)) { echo "<li>" . htmlspecialchars($password_err) . "</li>"; }
-            if (!empty($confirm_password_err)) { echo "<li>" . htmlspecialchars($confirm_password_err) . "</li>"; }}
+            if (!empty($confirm_password_err)) { echo "<li>" . htmlspecialchars($confirm_password_err) . "</li>"; }
             ?>
           </ul>
         </div>
