@@ -20,12 +20,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["update_profile"])) {
     }
 }
 
-
 // Check if user is logged in and is a business
 if (!isBusiness()) {
     // Redirect to login page with error message
     redirectWithMessage("login.php", "You must be logged in as a business to access this page.", "error");
     exit;
+}
+
+// Ensure session is started if not already done in config.php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 // Get business data
@@ -56,17 +60,22 @@ $sql = "SELECT b.*, u.username, u.email
         JOIN users u ON b.business_email = u.email 
         WHERE b.business_email = ?";
 
+
 if ($stmt = mysqli_prepare($link, $sql)) {
     mysqli_stmt_bind_param($stmt, "s", $_SESSION["email"]);
-    
     if (mysqli_stmt_execute($stmt)) {
         $result = mysqli_stmt_get_result($stmt);
-        
         if ($row = mysqli_fetch_assoc($result)) {
-            $business_data = $row;
+            $business_data= $row;
+        } else {
+            redirectWithMessage("login.php", "Business record not found.", "error");
+            exit;
         }
+    } else {
+        error_log("Execute failed: " . mysqli_error($link));
+        redirectWithMessage("error.php", "An error occurred while processing your request.", "error");
+        exit;
     }
-    
     mysqli_stmt_close($stmt);
 }
 
@@ -140,75 +149,97 @@ if (!isset($_SESSION['business_email']) && isset($_SESSION['email'])) {
 $business_email = $_SESSION['business_email'];
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
-    $business_name = mysqli_real_escape_string($link, $_POST['business_name']);
-    $new_business_email = mysqli_real_escape_string($link, $_POST['business_email']);
-    $business_category = mysqli_real_escape_string($link, $_POST['business_category']);
-    $business_description = mysqli_real_escape_string($link, $_POST['business_description']);
-    $business_address = mysqli_real_escape_string($link, $_POST['business_address']);
-    $business_phone = mysqli_real_escape_string($link, $_POST['business_phone']);
-    $profile_image = $_FILES['profile_image']['name'];
+    // Validate and sanitize inputs
+    $business_name        = trim($_POST['business_name']);
+    $business_category    = trim($_POST['business_category']);
+    $business_description = trim($_POST['business_description']);
+    $business_address     = trim($_POST['business_address']);
+    $business_phone       = trim($_POST['business_phone']);
 
-    // Check if the email has changed
-    if ($new_business_email != $business_email) {
-        // 1. Update the `businesses` table first (to avoid foreign key constraint issues)
-        $update_business_email = "UPDATE businesses SET business_email = '$new_business_email' WHERE business_email = '$business_email'";
-        if (!mysqli_query($link, $update_business_email)) {
-            // If there's an issue updating the businesses table, show an error message
-            $error_msg = 'Failed to update the email in the businesses table.';
-        }
 
-        // 2. Update the `users` table second (now it should be safe)
-        if (empty($error_msg)) { // Proceed if no error in businesses update
-            $update_user_email = "UPDATE users SET email = '$new_business_email' WHERE email = '$business_email' AND user_type = 'business'";
-            if (!mysqli_query($link, $update_user_email)) {
-                // If there's an issue updating the users table, show an error message
-                $error_msg = 'Failed to update the email in the users table.';
+    // Process image upload if a file was provided
+    if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        if ($_FILES['profile_image']['error'] == UPLOAD_ERR_OK) {
+            $file_tmp   = $_FILES['profile_image']['tmp_name'];
+            $file_name  = basename($_FILES['profile_image']['name']);
+            $file_size  = $_FILES['profile_image']['size'];
+            $file_type  = $_FILES['profile_image']['type'];
+
+            $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+            // Validate file type and size
+            if (!in_array($ext, $allowed_extensions)) {
+                $error_msg = "Image upload failed: Invalid file extension. Allowed types are JPG, PNG, and GIF.";
+            } elseif ($file_size > $max_file_size) {
+                $error_msg = "Image upload failed: File size exceeds the 2MB limit.";
+            } else {
+                // Generate a unique file name
+                $new_file_name = uniqid('business_logo_', true) . '.' . $ext;
+                $destination = $upload_dir . $new_file_name;
+
+                if (!file_exists($upload_dir)) {
+                    mkdir($upload_dir, 0777, true);
+                }
+
+                if (move_uploaded_file($file_tmp, $destination)) {
+                    $new_business_logo = $new_file_name;
+                    $uploadMessage = "Image uploaded successfully.";
+
+                    // Optionally delete old logo if it's not default
+                    if (!empty($business_data['business_logo']) && 
+                        $business_data['business_logo'] != 'default_business.png' && 
+                        file_exists($upload_dir . $business_data['business_logo'])) {
+                        unlink($upload_dir . $business_data['business_logo']);
+                    }
+                } else {
+                    $error_msg = "Image upload failed: Could not move the uploaded file. Check directory permissions.";
+                    error_log("Failed to move uploaded file from $file_tmp to $destination");
+                }
             }
-        }
-
-        // 3. If successful, update the session email
-        if (empty($error_msg)) {
-            // Update the session with the new email
-            $_SESSION['business_email'] = $new_business_email;
-            $_SESSION['email'] = $new_business_email; // Assuming you want to update both
+        } else {
+            $phpFileUploadErrors = array(
+                1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+                2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form',
+                3 => 'The uploaded file was only partially uploaded',
+                4 => 'No file was uploaded',
+                6 => 'Missing a temporary folder',
+                7 => 'Failed to write file to disk',
+                8 => 'A PHP extension stopped the file upload'
+            );
+            $error_msg = "Image upload failed: " . 
+                         ($phpFileUploadErrors[$_FILES['profile_image']['error']] ?? 'Unknown error');
         }
     }
 
     // If no errors, proceed with updating the business profile
     if (empty($error_msg)) {
-        // Fetch the business_id using the current business_email from the businesses table
-        $business_id_query = "SELECT business_id FROM businesses WHERE business_email = '$business_email' LIMIT 1";
-        $result_business_id = mysqli_query($link, $business_id_query);
-        
-        if ($result_business_id && mysqli_num_rows($result_business_id) > 0) {
-            $business_id = mysqli_fetch_assoc($result_business_id)['business_id'];
+        $business_id = $business_data['business_id']; // Assuming you already have this available
 
-            // Proceed to update the business profile
-            $update_query = "UPDATE businesses SET
-                business_name = '$business_name',
-                business_email = '$new_business_email',
-                business_category = '$business_category',
-                business_description = '$business_description',
-                business_address = '$business_address',
-                business_phone = '$business_phone',
-                business_logo = '$profile_image'
-                WHERE business_id = $business_id";
+        $update_query = "UPDATE businesses SET
+            business_name = ?, 
+            business_category = ?, 
+            business_description = ?, 
+            business_address = ?, 
+            business_phone = ?, 
+            business_logo = ?
+            WHERE business_id = ?";
 
-            if (mysqli_query($link, $update_query)) {
-                // Update session email if email was changed
-                if ($new_business_email != $business_email) {
-                    $_SESSION['business_email'] = $new_business_email;
-                }
-
+        if ($stmt = mysqli_prepare($link, $update_query)) {
+            mysqli_stmt_bind_param($stmt, "ssssssi", $business_name, $business_category, $business_description, $business_address, $business_phone, $new_business_logo, $business_id);
+            if (mysqli_stmt_execute($stmt)) {
                 $success_msg = 'Business profile updated successfully.';
+                if (!empty($uploadMessage)) {
+                    $success_msg .= " " . $uploadMessage;
+                }
             } else {
                 $error_msg = 'Failed to update business profile.';
+                error_log("Execute failed (update business profile): " . mysqli_error($link));
             }
-        } else {
-            $error_msg = 'Business record not found.';
+            mysqli_stmt_close($stmt);
         }
     }
 }
+
 
 
 // Process new reward creation if form is submitted
@@ -237,6 +268,57 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["create_reward"])) {
     }
 }
 
+// Handle Reward Updates
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_reward'])) {
+    $reward_id = intval($_POST['reward_id']);
+    $reward_name = mysqli_real_escape_string($link, $_POST['reward_name']);
+    $reward_description = mysqli_real_escape_string($link, $_POST['reward_description']);
+    $points_required = intval($_POST['points_required']);
+    
+    $sql = "UPDATE rewards SET 
+            reward_name = ?,
+            reward_description = ?,
+            points_required = ?
+            WHERE reward_id = ? AND business_id = ?";
+    
+    if ($stmt = mysqli_prepare($link, $sql)) {
+        mysqli_stmt_bind_param($stmt, "ssiii", 
+            $reward_name,
+            $reward_description,
+            $points_required,
+            $reward_id,
+            $business_data["business_id"]
+        );
+        
+        if (mysqli_stmt_execute($stmt)) {
+            redirectWithMessage("businessprofile.php", "Reward updated successfully.", "success");
+        } else {
+            redirectWithMessage("businessprofile.php", "Error updating reward.", "error");
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
+// Handle Deletions
+function handleDelete($link, $table, $id_field, $id_value, $redirect) {
+    $sql = "DELETE FROM $table WHERE $id_field = ?";
+    if ($stmt = mysqli_prepare($link, $sql)) {
+        mysqli_stmt_bind_param($stmt, "i", $id_value);
+        if (mysqli_stmt_execute($stmt)) {
+            redirectWithMessage($redirect, "Item deleted successfully.", "success");
+        } else {
+            redirectWithMessage($redirect, "Error deleting item.", "error");
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Delete Reward
+    if (isset($_POST['delete_reward'])) {
+        handleDelete($link, 'rewards', 'reward_id', $_POST['reward_id'], 'businessprofile.php');
+    }
+}
+
 require_once 'header.php';
 ?>
 
@@ -245,8 +327,9 @@ require_once 'header.php';
     <div class="profile-header mb-4">
         <div class="row align-items-center">
             <div class="col-md-3 text-center">
-                <img src="<?php echo $upload_dir . htmlspecialchars($business_data["business_logo"] ?? 'default_business.png'); ?>" 
-                alt="Business Logo" class="profile-img mb-3">
+            <img src="<?php echo $upload_dir . htmlspecialchars($business_data["business_logo"] ?? 'default_business.png'); ?>" 
+                alt="<?php echo htmlspecialchars($business_data["business_name"]); ?>" 
+                class="profile-img mb-3">
             </div>
             <div class="col-md-9">
                 <h2 class="mb-2"><?php echo htmlspecialchars($business_data["business_name"] ?? 'Your Business'); ?></h2>
@@ -336,13 +419,25 @@ require_once 'header.php';
                                                 <?php endif; ?>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-primary" onclick="editReward(<?php echo $reward['reward_id']; ?>)">
-                                                    <i class="fas fa-edit"></i>
+                                                <button 
+                                                    class="btn btn-sm btn-primary edit-reward-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editRewardModal"
+                                                    data-id="<?= $reward['reward_id'] ?>"
+                                                    data-name="<?= htmlspecialchars($reward['reward_name']) ?>"
+                                                    data-description="<?= htmlspecialchars($reward['reward_description']) ?>"
+                                                    data-points="<?= $reward['points_required'] ?>">
+                                                        Edit
                                                 </button>
-                                                <button class="btn btn-sm btn-danger" onclick="deleteReward(<?php echo $reward['reward_id']; ?>)">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
+                                                    <form method="POST" class="d-inline" 
+                                                        onsubmit="return confirm('Are you sure you want to delete this reward?')">
+                                                        <input type="hidden" name="reward_id" value="<?= $reward['reward_id'] ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                                        <button type="submit" name="delete_reward" class="btn btn-sm btn-danger">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -445,7 +540,9 @@ require_once 'header.php';
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">Recent Customers</h4>
-                    <a href="customers.php" class="btn btn-sm btn-outline-primary">View All</a>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#allCustomersModal">
+                        View All
+                    </button>
                 </div>
                 <div class="card-body">
                     <?php if (empty($customers)): ?>
@@ -470,7 +567,9 @@ require_once 'header.php';
                         
                         <?php if (count($customers) > 5): ?>
                             <div class="text-center mt-3">
-                                <a href="customers.php" class="btn btn-outline-primary">View All Customers</a>
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#allCustomersModal">
+                                View All
+                            </button>
                             </div>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -513,13 +612,6 @@ require_once 'header.php';
                     <div class="mb-3">
                         <label for="business_name" class="form-label">Business Name</label>
                         <input type="text" class="form-control" id="business_name" name="business_name" value="<?php echo htmlspecialchars($business_data["business_name"] ?? ''); ?>">
-                    </div>
-                    <!-- Business Email -->
-                    <div class="mb-3">
-                        <label class="form-label" for="business_email">Business Email</label>
-                        <input type="email" class="form-control" id="business_email" name="business_email" 
-                               value="<?php echo htmlspecialchars($business_data['business_email']); ?>" required>
-                        <div class="form-text">Must be a valid email address</div>
                     </div>
                     <div class="mb-3">
                         <label for="business_category" class="form-label">Business Category</label>
@@ -609,6 +701,86 @@ require_once 'header.php';
     </div>
 </div>
 
+<!-- All Customers Modal -->
+<div class="modal fade" id="allCustomersModal" tabindex="-1" aria-labelledby="allCustomersModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="allCustomersModalLabel">All Customers</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <?php if (!empty($customers)): ?>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Joined Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <?php foreach ($customers as $customer): ?>
+                  <tr>
+                    <td style="color: white !important;"><?php echo htmlspecialchars($customer['customer_first_name'] . ' ' . $customer['customer_last_name']); ?></td>
+                    <td style="color: white !important;"><?php echo htmlspecialchars($customer['customer_email']); ?></td>
+                    <td style="color: white !important;"><?php echo htmlspecialchars($customer['phone_number'] ?? 'N/A'); ?></td>
+                    <td style="color: white !important;"><?php echo htmlspecialchars(date('F j, Y', strtotime($customer['joined_date']))); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php else: ?>
+          <p>No customers found.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Reward Modal -->
+<div class="modal fade" id="editRewardModal" tabindex="-1" aria-labelledby="editRewardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRewardModalLabel">Edit Reward</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                    <input type="hidden" name="reward_id" id="editRewardId">
+
+                    <div class="mb-3">
+                        <label for="editRewardName" class="form-label">Reward Name</label>
+                        <input type="text" class="form-control" name="reward_name" id="editRewardName" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editRewardDescription" class="form-label">Description</label>
+                        <textarea class="form-control" name="reward_description" id="editRewardDescription" rows="3" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editRewardPoints" class="form-label">Points Required</label>
+                        <input type="number" class="form-control" name="points_required" id="editRewardPoints" min="1" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="update_reward" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
 <script>
 // Set default dates for the reward form
 document.addEventListener('DOMContentLoaded', function() {
@@ -670,6 +842,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const editButtons = document.querySelectorAll(".edit-reward-btn");
+    
+    editButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            const rewardId = button.getAttribute("data-id");
+            const rewardName = button.getAttribute("data-name");
+            const rewardDescription = button.getAttribute("data-description");
+            const pointsRequired = button.getAttribute("data-points");
+
+            // Fill modal inputs
+            document.getElementById("editRewardId").value = rewardId;
+            document.getElementById("editRewardName").value = rewardName;
+            document.getElementById("editRewardDescription").value = rewardDescription;
+            document.getElementById("editRewardPoints").value = pointsRequired;
+        });
+    });
+});
+
+
 </script>
 
 <?php require_once 'footer.php'; ?>
