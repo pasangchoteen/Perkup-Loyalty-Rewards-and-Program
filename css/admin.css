@@ -9,16 +9,17 @@
     --text-secondary: #666666;
     --text-muted: #888888;
     --border-color: #e5e7eb;
-  }
-  
-  body {
+    --radius: 0.5rem;
+}
+
+body {
     background-color: #f5f7fa; /* Light gray background */
     color: var(--text-primary);
     font-family: Arial, Helvetica, sans-serif;
-  }
-  
-  /* Admin Sidebar */
-  .admin-sidebar {
+}
+
+/* Admin Sidebar */
+.admin-sidebar {
     background-color: #ffffff; /* White background */
     border-radius: var(--radius);
     padding: 1.5rem;
@@ -26,51 +27,51 @@
     position: sticky;
     top: 1rem;
     border: 1px solid var(--border-color);
-  }
-  
-  .admin-nav .nav-link {
+}
+
+.admin-nav .nav-link {
     color: var(--text-primary);
     padding: 0.75rem 1rem;
     border-radius: var(--radius);
     margin-bottom: 0.5rem;
     transition: all 0.3s ease;
-  }
-  
-  .admin-nav .nav-link:hover {
+}
+
+.admin-nav .nav-link:hover {
     background-color: rgba(67, 97, 238, 0.1);
     color: var(--accent-primary);
-  }
-  
-  .admin-nav .nav-link.active {
+}
+
+.admin-nav .nav-link.active {
     background-color: var(--accent-primary);
     color: white;
-  }
-  
-  .admin-nav .nav-link i {
+}
+
+.admin-nav .nav-link i {
     width: 20px;
     text-align: center;
-  }
-  
-  /* Admin Cards */
-  .admin-card {
+}
+
+/* Admin Cards */
+.admin-card {
     background-color: #ffffff; /* White background */
     border-radius: var(--radius);
     padding: 1.5rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     margin-bottom: 1.5rem;
     border: 1px solid var(--border-color);
-  }
-  
-  .admin-card-title {
+}
+
+.admin-card-title {
     color: var(--text-primary);
     font-weight: 600;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
-  }
-  
-  /* Stats Cards */
-  .stats-card {
+}
+
+/* Stats Cards */
+.stats-card {
     border-radius: var(--radius);
     padding: 1.5rem;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
@@ -80,14 +81,14 @@
     border-left: 4px solid var(--accent-primary);
     height: 100%;
     background-color: #ffffff; /* White background */
-  }
-  
-  .stats-card:hover {
+}
+
+.stats-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
-  }
-  
-  .stats-icon {
+}
+
+.stats-icon {
     font-size: 2rem;
     margin-right: 1rem;
     width: 60px;
@@ -97,330 +98,168 @@
     justify-content: center;
     border-radius: 50%;
     background-color: rgba(67, 97, 238, 0.1);
-  }
-  
-  .stats-info h3 {
+}
+
+.stats-info h3 {
     font-size: 1.75rem;
     font-weight: 700;
     margin-bottom: 0.25rem;
     color: black !important; /* Override for stats card headings */
-  }
-  
-  .stats-info p {
+}
+
+.stats-info p {
     margin-bottom: 0;
     opacity: 0.8;
-  }
-  
-  /* Tables */
-  .table {
+}
+
+/* Tables */
+.table {
     color: var(--text-primary);
     margin-bottom: 0;
     background-color: #ffffff; /* White background */
-  }
-  
-  .table thead th {
+}
+
+.table thead th {
     border-top: none;
     border-bottom: 2px solid var(--accent-primary);
     color: var(--accent-primary);
     font-weight: 600;
     padding: 1rem;
     background-color: rgba(67, 97, 238, 0.05);
-  }
-  
-  .table tbody tr {
+}
+
+.table tbody tr {
     transition: background-color 0.3s ease;
-  }
-  
-  .table tbody tr:hover {
+}
+
+.table tbody tr:hover {
     background-color: rgba(67, 97, 238, 0.05);
-  }
-  
-  .table td {
+}
+
+.table td {
     vertical-align: middle;
     padding: 1rem;
     border-color: var(--border-color);
     color: black !important; /* Override for table cells */
-  }
-  
-  /* Buttons */
-  .btn-group .btn {
+}
+
+/* Buttons */
+.btn-group .btn {
     margin-right: 0.25rem;
-  }
-  
-  .btn-group .btn:last-child {
+}
+
+.btn-group .btn:last-child {
     margin-right: 0;
-  }
-  
-  .btn-primary {
+}
+
+.btn-primary {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
-  }
-  
-  .btn-primary:hover {
+}
+
+.btn-primary:hover {
     background-color: rgba(67, 97, 238, 0.9);
     border-color: rgba(67, 97, 238, 0.9);
-  }
-  
-  .btn-outline-primary {
+}
+
+.btn-outline-primary {
     color: var(--accent-primary);
     border-color: var(--accent-primary);
-  }
-  
-  .btn-outline-primary:hover {
+}
+
+.btn-outline-primary:hover {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
-  }
-  
-  /* Modals */
-  .modal-content {
+}
+
+/* Modals */
+.modal-content {
     background-color: #ffffff; /* White background */
     border: 1px solid var(--border-color);
     border-radius: var(--radius);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-  }
-  
-  .modal-header {
+}
+
+.modal-header {
     border-bottom: 1px solid var(--border-color);
     padding: 1.5rem;
-  }
-  
-  .modal-footer {
+}
+
+.modal-footer {
     border-top: 1px solid var(--border-color);
     padding: 1.5rem;
-  }
-  
-  .modal-title {
+}
+
+.modal-title {
     color: var(--accent-primary);
     font-weight: 600;
-  }
-  
-  /* Form Controls */
-  .form-control,
-  .form-select {
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
     border-radius: var(--radius);
     padding: 0.75rem 1rem;
     border: 1px solid var(--border-color);
     background-color: #ffffff; /* White background */
     color: var(--text-primary);
-  }
-  
-  .form-control:focus,
-  .form-select:focus {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
-  }
-  
-  .form-check-input:checked {
-    background-color: var(--accent-primary);
-    border-color: var(--accent-primary);
-  }
-  
-  .form-label {
-    color: black !important; /* Override for form labels */
-    font-weight: 500;
-  }
-  
-  /* Badges */
-  .badge {
+}
+
+/* Remove focus and active background change on inputs */
+.form-control:focus,
+.form-control:active,
+.form-select:focus,
+.form-select:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: var(--border-color) !important;
+    background-color: #ffffff !important;
+    color: var(--text-primary) !important;
+}
+
+/* Badges */
+.badge {
     padding: 0.5rem 0.75rem;
     font-weight: 500;
     border-radius: var(--radius);
-  }
-  
-  /* Dashboard cards */
-  .dashboard-card {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background-color: #ffffff; /* White background */
-    border-radius: var(--radius);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-  }
-  
-  .dashboard-card .card-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem;
-  }
-  
-  .dashboard-card .card-title {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-    color: var(--text-primary);
-  }
-  
-  .dashboard-card .card-title i {
-    font-size: 1.5rem;
-    color: var(--accent-primary);
-  }
-  
-  .dashboard-card .card-text {
-    margin-bottom: 1.5rem;
-    flex: 1;
-    color: var(--text-secondary);
-  }
-  
-  .dashboard-card .card-footer {
-    background-color: transparent;
-    border-top: 1px solid var(--border-color);
-    padding: 1rem 1.5rem;
-  }
-  
-  /* Activity feed */
-  .activity-feed {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  
-  .activity-item {
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .activity-item:last-child {
-    border-bottom: none;
-  }
-  
-  .activity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(67, 97, 238, 0.1);
-    color: var(--accent-primary);
-    flex-shrink: 0;
-  }
-  
-  .activity-content {
-    flex: 1;
-  }
-  
-  .activity-content h6 {
-    margin-bottom: 0.25rem;
-    color: var(--text-primary);
-  }
-  
-  .activity-time {
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-  
-  /* Custom colors for stats cards */
-  .bg-primary {
-    background-color: var(--accent-primary) !important;
-  }
-  
-  .bg-success {
-    background-color: rgb(76, 201, 240) !important;
-  }
-  
-  .bg-info {
-    background-color: rgb(94, 114, 228) !important;
-  }
-  
-  .bg-warning {
-    background-color: rgb(251, 99, 64) !important;
-  }
-  
-  /* Text color overrides */
-  .table th {
-    color: var(--accent-primary) !important;
-  }
-  
-  .admin-card-title {
-    color: black !important;
-  }
-  
-  /* Responsive adjustments */
-  @media (max-width: 992px) {
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
     .admin-sidebar {
-      position: static;
-      margin-bottom: 1.5rem;
+        position: static;
+        margin-bottom: 1.5rem;
     }
-  
+
     .stats-card {
-      margin-bottom: 1rem;
+        margin-bottom: 1rem;
     }
-  }
-  
-  @media (max-width: 768px) {
+}
+
+@media (max-width: 768px) {
     .admin-card {
-      padding: 1rem;
+        padding: 1rem;
     }
-  
+
     .stats-icon {
-      width: 50px;
-      height: 50px;
-      font-size: 1.5rem;
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
     }
-  
+
     .stats-info h3 {
-      font-size: 1.5rem;
+        font-size: 1.5rem;
     }
-  }
-  
-  @media (max-width: 576px) {
+}
+
+@media (max-width: 576px) {
     .stats-card {
-      flex-direction: column;
-      text-align: center;
+        flex-direction: column;
+        text-align: center;
     }
-  
+
     .stats-icon {
-      margin-right: 0;
-      margin-bottom: 1rem;
+        margin-right: 0;
+        margin-bottom: 1rem;
     }
-  }
-  
-  /* Dark mode adjustments - overridden to keep white backgrounds */
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: #f5f7fa; /* Keep light background even in dark mode */
-    }
-  
-    .stats-card,
-    .admin-sidebar,
-    .admin-card,
-    .modal-content,
-    .form-control,
-    .form-select,
-    .dashboard-card {
-      background-color: #ffffff !important; /* Force white background */
-      border-color: var(--border-color);
-    }
-  
-    .table thead th {
-      background-color: rgba(67, 97, 238, 0.05);
-    }
-  
-    .table tbody tr:hover {
-      background-color: rgba(67, 97, 238, 0.05);
-    }
-  
-    .activity-icon {
-      background-color: rgba(67, 97, 238, 0.1);
-    }
-  
-    /* Override text colors to ensure readability on white background */
-    .admin-card-title,
-    .form-label,
-    .table td,
-    .stats-info h3,
-    .modal-title,
-    .activity-content h6 {
-      color: black !important;
-    }
-  
-    .table th {
-      color: var(--accent-primary) !important;
-    }
-  }
-  
+}
