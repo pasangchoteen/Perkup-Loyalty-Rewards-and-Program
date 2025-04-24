@@ -41,10 +41,6 @@ $rewards = [];
 $customers = [];
 $action_success = $action_error = '';
 
-// Test database connection
-// if (!$link) {
-//     die("Database connection failed: " . mysqli_connect_error());
-// }
 
 // Get basic statistics with error handling
 try {
@@ -221,39 +217,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                     break;
                 
-                case 'add_business':
-                    $business_name = trim($_POST['business_name']);
-                    $business_description = trim($_POST['business_description']);
-                    $business_category = trim($_POST['business_category']);
-                    $business_email = trim($_POST['business_email']);
-                    
-                    // First, create a user for the business
-                    $username = strtolower(str_replace(' ', '', $business_name));
-                    $password = password_hash('password123', PASSWORD_DEFAULT); // Default password
-                    
-                    $sql = "INSERT INTO users (username, email, password, user_type) VALUES (?, ?, ?, 'business')";
-                    if ($stmt = mysqli_prepare($link, $sql)) {
-                        mysqli_stmt_bind_param($stmt, "sss", $username, $business_email, $password);
-                        if (mysqli_stmt_execute($stmt)) {
-                            // Now create the business
-                            $sql = "INSERT INTO businesses (business_email, business_name, business_description, business_category) 
-                                    VALUES (?, ?, ?, ?)";
-                            
-                            if ($stmt2 = mysqli_prepare($link, $sql)) {
-                                mysqli_stmt_bind_param($stmt2, "ssss", $business_email, $business_name, $business_description, $business_category);
-                                if (mysqli_stmt_execute($stmt2)) {
-                                    $action_success = "Business added successfully.";
-                                } else {
-                                    $action_error = "Error adding business: " . mysqli_error($link);
-                                }
-                                mysqli_stmt_close($stmt2);
-                            }
-                        } else {
-                            $action_error = "Error creating user for business: " . mysqli_error($link);
-                        }
-                        mysqli_stmt_close($stmt);
-                    }
-                    break;
                 
                 case 'update_reward':
                     if (isset($_POST['reward_id']) && is_numeric($_POST['reward_id'])) {
@@ -330,63 +293,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                     break;
                 
-                case 'add_user':
-                    $username = trim($_POST['username']);
-                    $email = trim($_POST['email']);
-                    $password = trim($_POST['password']);
-                    $user_type = trim($_POST['user_type']);
-                    
-                    // Check if username or email already exists
-                    $sql = "SELECT id FROM users WHERE username = ? OR email = ?";
-                    if ($stmt = mysqli_prepare($link, $sql)) {
-                        mysqli_stmt_bind_param($stmt, "ss", $username, $email);
-                        if (mysqli_stmt_execute($stmt)) {
-                            mysqli_stmt_store_result($stmt);
-                            if (mysqli_stmt_num_rows($stmt) > 0) {
-                                $action_error = "Username or email already exists.";
-                            } else {
-                                // Hash the password
-                                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                                
-                                // Insert the new user
-                                $sql = "INSERT INTO users (username, email, password, user_type) 
-                                        VALUES (?, ?, ?, ?)";
-                                
-                                if ($stmt2 = mysqli_prepare($link, $sql)) {
-                                    mysqli_stmt_bind_param($stmt2, "ssss", $username, $email, $hashed_password, $user_type);
-                                    if (mysqli_stmt_execute($stmt2)) {
-                                        $action_success = "User added successfully.";
-                                        
-                                        // If user type is customer, create a customer record
-                                        if ($user_type == 'customer') {
-                                            $referral_code = strtoupper(substr($username, 0, 2) . rand(100, 999));
-                                            $sql = "INSERT INTO customers (customer_email, customer_first_name, customer_last_name, referral_code) 
-                                                    VALUES (?, 'New', 'Customer', ?)";
-                                            
-                                            if ($stmt3 = mysqli_prepare($link, $sql)) {
-                                                mysqli_stmt_bind_param($stmt3, "ss", $email, $referral_code);
-                                                mysqli_stmt_execute($stmt3);
-                                                mysqli_stmt_close($stmt3);
-                                            }
-                                        }
-                                    } else {
-                                        $action_error = "Error adding user: " . mysqli_error($link);
-                                    }
-                                    mysqli_stmt_close($stmt2);
-                                }
-                            }
-                        } else {
-                            $action_error = "Error checking existing user: " . mysqli_error($link);
-                        }
-                        mysqli_stmt_close($stmt);
-                    }
-                    break;
-                
                 default:
                     $action_error = "Unknown action.";
                     break;
             }
         }
+    }
+}
+// Handle business deletion
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["delete_business"])) {
+    $business_id = intval($_POST["business_id"]);
+    
+    // Delete from businesses table
+    $sql = "DELETE FROM businesses WHERE business_id = ?";
+    if ($stmt = mysqli_prepare($link, $sql)) {
+        mysqli_stmt_bind_param($stmt, "i", $business_id);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    }
+    
+    // Delete associated users entry
+    $sql = "DELETE FROM users WHERE email = ?";
+    if ($stmt = mysqli_prepare($link, $sql)) {
+        mysqli_stmt_bind_param($stmt, "s", $business_data["business_email"]);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    }
+    
+    redirectWithMessage("businessprofile.php", "Business deleted successfully.", "success");
+}
+
+// Handle user updates
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST["update_user"])) {
+    $user_id = intval($_POST["user_id"]);
+    $username = mysqli_real_escape_string($link, $_POST["username"]);
+    $user_type = mysqli_real_escape_string($link, $_POST["user_type"]);
+    
+    $sql = "UPDATE users SET username = ?, user_type = ? WHERE id = ?";
+    if ($stmt = mysqli_prepare($link, $sql)) {
+        mysqli_stmt_bind_param($stmt, "ssi", $username, $user_type, $user_id);
+        mysqli_stmt_execute($stmt);
+        redirectWithMessage("businessprofile.php", "User updated successfully.", "success");
     }
 }
 
@@ -581,9 +528,6 @@ require_once 'header.php';
                     <div class="admin-card">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2 class="admin-card-title">User Management</h2>
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                                <i class="fas fa-plus me-2"></i> Add User
-                            </button>
                         </div>
                         
                         <div class="table-responsive">
@@ -701,9 +645,9 @@ require_once 'header.php';
                     <div class="admin-card">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2 class="admin-card-title">Business Management</h2>
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBusinessModal">
-                                <i class="fas fa-plus me-2"></i> Add Business
-                            </button>
+                            <a href="business_registration.php" class="btn btn-outline-primary">
+                                <i class="fas fa-plus me-1"></i> Register New Business
+                            </a>
                         </div>
                         
                         <div class="table-responsive">
@@ -1261,6 +1205,61 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+
+// Reward Edit Modal Population
+document.getElementById('editRewardModal').addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    const modal = this;
+    
+    modal.querySelector('#editRewardId').value = button.dataset.rewardId;
+    modal.querySelector('#editRewardName').value = button.dataset.rewardName;
+    modal.querySelector('#editRewardDescription').value = button.dataset.rewardDescription;
+    modal.querySelector('#editRewardPoints').value = button.dataset.pointsRequired;
+});
+
+// General Delete Confirmation
+document.querySelectorAll('form[onsubmit]').forEach(form => {
+    form.onsubmit = function(e) {
+        const message = this.getAttribute('data-confirm') || 'Are you sure?';
+        if (!confirm(message)) {
+            e.preventDefault();
+        }
+    };
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const editButtons = document.querySelectorAll(".edit-reward-btn");
+    
+    editButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            const rewardId = button.getAttribute("data-id");
+            const rewardName = button.getAttribute("data-name");
+            const rewardDescription = button.getAttribute("data-description");
+            const pointsRequired = button.getAttribute("data-points");
+
+            // Fill modal inputs
+            document.getElementById("editRewardId").value = rewardId;
+            document.getElementById("editRewardName").value = rewardName;
+            document.getElementById("editRewardDescription").value = rewardDescription;
+            document.getElementById("editRewardPoints").value = pointsRequired;
+        });
+    });
+});
+
+// Functions for editing and deleting rewards
+function editReward(rewardId) {
+    // This would typically open a modal with the reward details for editing
+    alert('Edit reward with ID: ' + rewardId + ' (functionality to be implemented)');
+}
+
+function deleteReward(rewardId) {
+    if (confirm('Are you sure you want to delete this reward?')) {
+        // This would typically send an AJAX request to delete the reward
+        alert('Delete reward with ID: ' + rewardId + ' (functionality to be implemented)');
+    }
+}
+
 </script>
 
 <?php require_once 'footer.php'; ?>
