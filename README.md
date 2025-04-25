@@ -37,8 +37,10 @@ PerkUp enables businesses to build deeper customer relationships through:
 PerkUp is designed with SMBs in mind — whether you're a local coffee shop, boutique, or growing e-commerce brand, PerkUp helps you build a loyal customer base.
 
 ## 🛠️ Tech Stack
-
-
+- **Frontend:** PHP, JavaScript, CSS  
+- **Backend:** PHP  
+- **Database:** MySQL  
+- **Authentication & Sessions:** Native PHP session management  
 
 ## 👀 Coming Soon
 
