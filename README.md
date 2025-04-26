@@ -20,9 +20,10 @@ PerkUp enables businesses to build deeper customer relationships through:
 
 - 📊 **Business Admin Dashboard**  
   A clean, intuitive dashboard for business owners to track activity, manage promotions, and measure success.
-  
-- 👤 **Customer Dashboard**
+
+- 👤 **Customer Dashboard**  
   Give customers a personalized hub to view rewards progress, track recent activity, and access exclusive promotions.
+
 
 ## 💡 Key Benefits
 
