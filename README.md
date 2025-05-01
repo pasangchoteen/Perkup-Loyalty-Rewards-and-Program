@@ -44,7 +44,7 @@ PerkUp is designed with Small and Medium-sized Business (SMBs) in mind — wheth
 - **Frontend:** PHP, JavaScript, CSS  
 - **Backend:** PHP  
 - **Database:** MySQL  
-- **Authentication & Sessions:** Native PHP session management  
+- **Authentication & Sessions:** Native PHP session management like password_hash, csrf_token etc.  
 
 ## 👀 Coming Soon
 
